@@ -18,12 +18,13 @@ Terminal user interface for air freight dispatchers to predict engine failures, 
 
 - **Objective:** Predict the exact number of remaining operational flight cycles before an aircraft engine requires overhaul or risks mechanical failure.
 - **The Math & Architecture:** This is formulated as a sequence-to-many regression problem. You feed rolling time-series windows of sensor data into an **LSTM (Long Short-Term Memory)** network or a **1D-CNN (Temporal Convolutional Network)**. The model learns features across a sliding historical cycle window ($T$) to output a continuous target variable:
-    
+
+```math
     $$
     RUL_t = \max(0, \text{Max\_Cycle}_i - t)
     $$
-    
-    To improve model stability early in an engine's life cycle, a piecewise linear RUL target function is typically applied, capping maximum healthy RUL at a fixed threshold (e.g., $125$ cycles).
+```
+To improve model stability early in an engine's life cycle, a piecewise linear RUL target function is typically applied, capping maximum healthy RUL at a fixed threshold (e.g., $125$ cycles).
     
 - **Dataset to Use:** **NASA C-MAPSS Turbofan Engine Degradation Simulation Dataset**. It tracks $21$ simulated sensor outputs (including total temperature, pressure, compressor speeds, and fuel flow) running from a completely healthy state down to operational failure across multiple operating conditions.
 - **TUI Representation:** Rendered as a real-time system health grid. As you cycle through tail numbers in the terminal dashboard, it maps current sensor outputs onto a custom progress bar component that flashes red when predicted $RUL < 15$ cycles, prompting immediate ground maintenance logs.
@@ -45,9 +46,9 @@ Terminal user interface for air freight dispatchers to predict engine failures, 
 - **Objective:** Automate the placement of physical cargo pallets (Unit Load Devices - ULDs) across an aircraft's main and lower decks to ensure total center of gravity (CG) boundaries fall strictly within certified structural flight limits.
 - **The Math & Architecture:** This is a multi-constrained **3D Bin Packing Problem** solved via a hybrid heuristic approach or a **Deep Reinforcement Learning (DRL)** agent using a Proximal Policy Optimization (PPO) framework. The action space is the coordinate placement grid within the aircraft hold. The reward function penalizes violations of structural constraints and rewards tighter alignment with the target Zero-Fuel Center of Gravity (ZFCG) position:
     
-    $$
+```math
     \text{Reward} = -(\alpha \cdot \vert{}\text{Target CG} - \text{Current CG}\vert{} + \beta \cdot \text{Volume Wastage})
-    $$
+```
     
 - **Dataset to Use:** **IATA Cargo 2000 (Cargo iQ Case Study Dataset)** combined with synthetic aircraft structural limit blueprints (e.g., Boeing 777F maximum weight limits per compartment zone). The Cargo 2000 data tracks physical shipping leg volumes, process tracking milestones, and cargo dimensions.
 - **TUI Representation:** Uses a scannable ASCII text matrix rendering a schematic top-down structural blueprint of the aircraft deck layouts. It visually maps out density zones using varying block intensities (`█`, `▓`, `▒`), flashing warning indicators if a cargo configuration shifts the CG into a dangerous tail-heavy or nose-heavy threshold.
