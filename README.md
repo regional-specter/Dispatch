@@ -14,7 +14,7 @@ Terminal user interface for air freight dispatchers to predict engine failures, 
 
 ---
 
-## Model 1: Jet Engine Predictive Maintenance (RUL)
+## ✅ Model 1: Jet Engine Predictive Maintenance (RUL)
 
 - **Objective:** Predict the exact number of remaining operational flight cycles before an aircraft engine requires overhaul or risks mechanical failure.
 - **The Math & Architecture:** This is formulated as a sequence-to-many regression problem. You feed rolling time-series windows of sensor data into an **LSTM (Long Short-Term Memory)** network or a **1D-CNN (Temporal Convolutional Network)**. The model learns features across a sliding historical cycle window ($T$) to output a continuous target variable:
@@ -28,6 +28,9 @@ To improve model stability early in an engine's life cycle, a piecewise linear R
     
 - **Dataset to Use:** **NASA C-MAPSS Turbofan Engine Degradation Simulation Dataset**. It tracks $21$ simulated sensor outputs (including total temperature, pressure, compressor speeds, and fuel flow) running from a completely healthy state down to operational failure across multiple operating conditions.
 - **TUI Representation:** Rendered as a real-time system health grid. As you cycle through tail numbers in the terminal dashboard, it maps current sensor outputs onto a custom progress bar component that flashes red when predicted $RUL < 15$ cycles, prompting immediate ground maintenance logs.
+
+<img width="1584" height="583" alt="image" src="https://github.com/user-attachments/assets/6492aac5-2fcb-4996-a644-0ee11aeb078d" />
+
 
 ## Model 2: Flight Disruption & Delay Predictor
 
