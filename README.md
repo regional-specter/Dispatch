@@ -32,7 +32,7 @@ To improve model stability early in an engine's life cycle, a piecewise linear R
 <img width="1584" height="583" alt="image" src="https://github.com/user-attachments/assets/6492aac5-2fcb-4996-a644-0ee11aeb078d" />
 
 
-## Model 2: Flight Disruption & Delay Predictor
+## ✅ Model 2: Flight Disruption & Delay Predictor
 
 - **Objective:** Classify whether an upcoming flight route will face a critical delay (greater than $15$ minutes) and predict the exact duration of the delay vector.
 - **The Math & Architecture:** A dual-stage ensemble framework using **LightGBM** or **XGBoost**.
@@ -43,6 +43,11 @@ To improve model stability early in an engine's life cycle, a piecewise linear R
         
 - **Dataset to Use:** **Flight Delay Dataset (2024 / Bureau of Transportation Statistics)** on Kaggle. This gives you over 7 million rows of real-world domestic flight records with exact breakdowns of delay root causes (e.g., `carrier_delay`, `weather_delay`, `nas_delay`).
 - **TUI Representation:** Integrated directly into a dynamic flight scheduling viewport. Delayed routes are highlighted with amber warnings, displaying a breakdown of the structural cause of the delay (e.g., `[WX]` for weather, `[EQ]` for equipment) alongside the model's prediction confidence score.
+
+<img width="1174" height="490" alt="image" src="https://github.com/user-attachments/assets/8e2cfb86-d378-4d0d-a64c-33b22a7cc58d" />
+
+<img width="1389" height="490" alt="image" src="https://github.com/user-attachments/assets/7e6ce8d6-df6d-4b0e-818d-30f85fee4cad" />
+
 
 ## Model 3: Cargo Weight & Balance Optimization
 
