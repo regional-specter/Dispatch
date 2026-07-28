@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dispatch · Cargo Load Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="canvas"></canvas>
+
+    <!-- Fixed sidebar (2D) -->
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <div class="logo">✈ Dispatch</div>
+        <p class="subtitle">Cargo Weight &amp; Balance · 777F Hold</p>
+      </header>
+
+      <div class="card highlight-card">
+        <div class="card-top">
+          <span class="card-label">Load Status</span>
+          <span id="status-pill" class="status-pill ok">OK</span>
+        </div>
+        <div class="compliance-ring">
+          <span id="compliance-score" class="compliance-value">0%</span>
+          <span class="compliance-caption">Compliance</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Center of Gravity (Longitudinal)</div>
+        <div class="metric-row">
+          <div>
+            <div class="metric-value" id="cg-current">5.00</div>
+            <div class="metric-sub">Current CG</div>
+          </div>
+          <div class="metric-divider"></div>
+          <div>
+            <div class="metric-value muted" id="cg-target">5.00</div>
+            <div class="metric-sub">Target ZFCG</div>
+          </div>
+          <div class="metric-divider"></div>
+          <div>
+            <div class="metric-value" id="cg-offset">0.00</div>
+            <div class="metric-sub">Offset</div>
+          </div>
+        </div>
+        <div class="progress-track cg-track">
+          <div class="progress-fill cg-fill" id="cg-bar"></div>
+          <div class="cg-marker-ui" id="cg-marker-ui"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Total Payload</div>
+        <div class="metric-value-lg">
+          <span id="total-mass">0</span>
+          <span class="unit">/ <span id="max-mass">103,000</span> kg</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill mass-fill" id="mass-bar"></div>
+        </div>
+        <div class="metric-sub" style="margin-top:8px">Hold utilization: <strong id="volume-util">0%</strong></div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Compartment Zones</div>
+        <div class="zone-row">
+          <span>FWD</span>
+          <div class="progress-track mini"><div class="progress-fill zone-fwd" id="zone-fwd"></div></div>
+          <span class="zone-val" id="zone-fwd-val">0 kg</span>
+        </div>
+        <div class="zone-row">
+          <span>CENTER</span>
+          <div class="progress-track mini"><div class="progress-fill zone-center" id="zone-center"></div></div>
+          <span class="zone-val" id="zone-center-val">0 kg</span>
+        </div>
+        <div class="zone-row">
+          <span>AFT</span>
+          <div class="progress-track mini"><div class="progress-fill zone-aft" id="zone-aft"></div></div>
+          <span class="zone-val" id="zone-aft-val">0 kg</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Selected Package</div>
+        <p id="selected-info" class="selected-info">Click &amp; drag a ULD inside the hold</p>
+      </div>
+
+      <div class="actions">
+        <button id="btn-balance" class="btn primary">Auto-Balance</button>
+        <button id="btn-reset" class="btn ghost">Reset Load</button>
+      </div>
+
+      <p class="hint">Left-click drag ULD freely · Right-click orbit · Invalid drops revert to pick-up spot</p>
+    </aside>
+
+    <div class="viewport-hint">
+      <span>🖱 Left — Move cargo</span>
+      <span>🖱 Right — Rotate view</span>
+      <span>⚲ Scroll — Zoom</span>
+    </div>
+
+    <!-- 3D floating stats widget (positioned in world space via CSS2D) -->
+    <div id="stats-panel-3d" class="stats-panel-3d">
+      <div class="float-card">
+        <div class="float-title">Live Telemetry</div>
+        <div class="float-metric">
+          <span>CG Offset</span>
+          <strong id="float-cg-offset">—</strong>
+        </div>
+        <div class="float-metric">
+          <span>Payload</span>
+          <strong><span id="float-total-mass">—</span> kg</strong>
+        </div>
+        <div class="float-metric">
+          <span>Status</span>
+          <strong id="float-status">—</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
