@@ -49,7 +49,7 @@ To improve model stability early in an engine's life cycle, a piecewise linear R
 <img width="1389" height="490" alt="image" src="https://github.com/user-attachments/assets/7e6ce8d6-df6d-4b0e-818d-30f85fee4cad" />
 
 
-## Model 3: Cargo Weight & Balance Optimization
+## ✅ Model 3: Cargo Weight & Balance Optimization
 
 - **Objective:** Automate the placement of physical cargo pallets (Unit Load Devices - ULDs) across an aircraft's main and lower decks to ensure total center of gravity (CG) boundaries fall strictly within certified structural flight limits.
 - **The Math & Architecture:** This is a multi-constrained **3D Bin Packing Problem** solved via a hybrid heuristic approach or a **Deep Reinforcement Learning (DRL)** agent using a Proximal Policy Optimization (PPO) framework. The action space is the coordinate placement grid within the aircraft hold. The reward function penalizes violations of structural constraints and rewards tighter alignment with the target Zero-Fuel Center of Gravity (ZFCG) position:
@@ -60,6 +60,8 @@ To improve model stability early in an engine's life cycle, a piecewise linear R
     
 - **Dataset to Use:** **IATA Cargo 2000 (Cargo iQ Case Study Dataset)** combined with synthetic aircraft structural limit blueprints (e.g., Boeing 777F maximum weight limits per compartment zone). The Cargo 2000 data tracks physical shipping leg volumes, process tracking milestones, and cargo dimensions.
 - **TUI Representation:** Uses a scannable ASCII text matrix rendering a schematic top-down structural blueprint of the aircraft deck layouts. It visually maps out density zones using varying block intensities (`█`, `▓`, `▒`), flashing warning indicators if a cargo configuration shifts the CG into a dangerous tail-heavy or nose-heavy threshold.
+
+<img width="1346" height="729" alt="image" src="https://github.com/user-attachments/assets/15fb8c9e-4904-4333-8e5e-436dd9ae4b9f" />
 
 ## Model 4: Dynamic Freight Spot-Pricing Engine
 
