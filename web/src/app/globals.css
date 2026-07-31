@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+:root {
+  --page-bg: #f7f8fa;
+  --card-bg: #ffffff;
+  --card-border: #e8eaed;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --accent: #2563eb;
+  --positive: #16a34a;
+  --negative: #dc2626;
+}
+
+body {
+  background: var(--page-bg);
+  color: var(--text-primary);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+}

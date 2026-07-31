@@ -1,0 +1,51 @@
+{
+  "model": "flight_delay",
+  "version": "1.0.0",
+  "features": [
+    "route_delay_risk",
+    "carrier_delay_risk",
+    "scheduled_speed_mph",
+    "dep_time_sin",
+    "dep_time_cos",
+    "crs_elapsed_time",
+    "distance",
+    "month",
+    "day_of_month",
+    "day_of_week",
+    "day_sin",
+    "day_cos"
+  ],
+  "metrics": {
+    "roc_auc": 0.5755,
+    "accuracy": 0.678,
+    "delay_mae_minutes": 28.3,
+    "holdout_size": 500,
+    "delay_rate": 0.2132
+  },
+  "dataset": "BTS Flight Delay 2024 (demo subset)",
+  "notebook_url": "notebooks/flight-disruption-delay-predictor.ipynb",
+  "carrier_risk_map": {
+    "AA": 0.2059,
+    "AS": 0.2,
+    "B6": 0.241,
+    "DL": 0.2063,
+    "F9": 0.1906,
+    "NK": 0.1796,
+    "UA": 0.2313,
+    "WN": 0.2556
+  },
+  "route_risk_map": {
+    "ATL-JFK": 0.1823,
+    "BOS-MIA": 0.181,
+    "DEN-PHX": 0.1818,
+    "DFW-DEN": 0.1618,
+    "EWR-MCO": 0.3156,
+    "IAH-LAS": 0.2548,
+    "JFK-LAX": 0.2029,
+    "LAX-ORD": 0.1598,
+    "MIA-BOS": 0.1919,
+    "ORD-ATL": 0.3241,
+    "SEA-SFO": 0.2011,
+    "SFO-SEA": 0.1883
+  }
+}

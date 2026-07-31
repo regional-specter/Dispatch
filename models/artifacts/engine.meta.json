@@ -1,0 +1,34 @@
+{
+  "model": "engine_rul",
+  "version": "1.0.0",
+  "features": [
+    "s2_mean",
+    "s3_mean",
+    "s4_mean",
+    "s7_mean",
+    "s11_mean",
+    "s12_mean",
+    "s13_mean",
+    "s15_mean",
+    "s17_mean",
+    "s20_mean",
+    "s21_mean",
+    "s2_std",
+    "s3_std",
+    "s4_std",
+    "s7_std",
+    "s11_std",
+    "s12_std",
+    "cycle_position"
+  ],
+  "metrics": {
+    "rmse_cycles": 5.74,
+    "mae_cycles": 4.08,
+    "holdout_size": 2802
+  },
+  "dataset": "NASA C-MAPSS FD001 (demo subset)",
+  "notebook_url": "notebooks/jet-engine-predictive-maintenance-rul.ipynb",
+  "architecture": "Gradient boosting on rolling sensor windows",
+  "window_size": 30,
+  "max_rul": 125
+}
