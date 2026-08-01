@@ -18,6 +18,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from dispatch.inference.delay import DelayPredictor  # noqa: E402
 from dispatch.inference.engine import EnginePredictor  # noqa: E402
+from dispatch.features.engine import ACTIVE_SENSORS  # noqa: E402
 
 MODEL_DIR = Path(os.getenv("MODEL_DIR", REPO_ROOT / "models" / "artifacts"))
 SAMPLE_ENGINES = REPO_ROOT / "data" / "samples" / "engines_demo.csv"
@@ -185,3 +186,76 @@ def list_engine_units() -> list[dict[str, Any]]:
          for u, g in engines_df.groupby("unit_nr")],
         key=lambda u: u["unit_nr"],
     )
+
+
+@app.get("/engines/units/{unit_nr}/telemetry")
+def get_engine_telemetry(unit_nr: int, at_cycle: int | None = None, limit: int = 80) -> dict[str, Any]:
+    if engines_df is None:
+        raise HTTPException(503, "Engine data not loaded")
+
+    unit_data = engines_df[engines_df["unit_nr"] == unit_nr].sort_values("time_cycles")
+    if unit_data.empty:
+        raise HTTPException(404, f"Engine unit {unit_nr} not found")
+    if at_cycle is not None:
+        unit_data = unit_data[unit_data["time_cycles"] <= at_cycle]
+
+    step = max(1, len(unit_data) // limit)
+    sampled = unit_data.iloc[::step]
+    if len(unit_data) > 0 and sampled.iloc[-1]["time_cycles"] != unit_data.iloc[-1]["time_cycles"]:
+        sampled = pd.concat([sampled, unit_data.tail(1)])
+
+    return {
+        "unit_nr": unit_nr,
+        "max_cycle": int(unit_data["max_cycle"].iloc[0]),
+        "current_cycle": int(unit_data["time_cycles"].max()),
+        "series": [
+            {
+                "cycle": int(row["time_cycles"]),
+                **{sensor: round(float(row[sensor]), 4) for sensor in ACTIVE_SENSORS},
+            }
+            for _, row in sampled.iterrows()
+        ],
+    }
+
+
+@app.get("/engines/units/{unit_nr}/rul-timeline")
+def get_rul_timeline(unit_nr: int, points: int = 24) -> list[dict[str, Any]]:
+    if engine_predictor is None or engines_df is None:
+        raise HTTPException(503, "Engine model not loaded")
+
+    unit_data = engines_df[engines_df["unit_nr"] == unit_nr].sort_values("time_cycles")
+    if unit_data.empty:
+        raise HTTPException(404, f"Engine unit {unit_nr} not found")
+
+    max_cycle = int(unit_data["time_cycles"].max())
+    start = 30
+    step = max(1, (max_cycle - start) // max(points - 1, 1))
+    timeline: list[dict[str, Any]] = []
+
+    for cycle in range(start, max_cycle + 1, step):
+        try:
+            result = engine_predictor.predict_unit(unit_data, at_cycle=cycle)
+            timeline.append(
+                {
+                    "cycle": cycle,
+                    "rul": result["predicted_rul_cycles"],
+                    "status": result["status"],
+                }
+            )
+        except ValueError:
+            continue
+
+    if timeline and timeline[-1]["cycle"] != max_cycle:
+        try:
+            result = engine_predictor.predict_unit(unit_data, at_cycle=max_cycle)
+            timeline.append(
+                {
+                    "cycle": max_cycle,
+                    "rul": result["predicted_rul_cycles"],
+                    "status": result["status"],
+                }
+            )
+        except ValueError:
+            pass
+
+    return timeline

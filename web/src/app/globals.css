@@ -16,3 +16,102 @@ body {
   color: var(--text-primary);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
 }
+
+/* Flight route map animations */
+@keyframes arc-draw {
+  from { stroke-dashoffset: 1200; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes airport-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.1; }
+  50% { transform: scale(1.4); opacity: 0.03; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.flight-arc-draw {
+  stroke: var(--arc-color, #2563eb);
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: arc-draw 2s ease-out forwards;
+}
+
+.airport-pulse {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: airport-pulse 2.5s ease-in-out infinite;
+}
+
+.flight-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e8eaed;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Engine maintenance UI */
+@keyframes engine-flow {
+  from { stroke-dashoffset: 12; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes engine-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.engine-flow {
+  animation: engine-flow 1.2s linear infinite;
+}
+
+.engine-spinner {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: engine-spin 3s linear infinite;
+}
+
+.engine-zone {
+  transition: fill 0.5s ease, stroke 0.5s ease;
+}
+
+.engine-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #e8eaed;
+  outline: none;
+}
+
+.engine-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #2563eb;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.engine-scrubber::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #2563eb;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.rul-gauge-fill {
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sensor-bar-fill {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}

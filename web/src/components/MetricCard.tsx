@@ -15,10 +15,10 @@ export function MetricCard({ periodLabel, title, heroValue, trend, sparkline, in
     : (v: number) => String(v);
   const trendColor = trend ? (trend.direction === "neutral" ? "text-[#6B7280]" : (trend.direction === "up" ? trend.positiveIsGood : !trend.positiveIsGood) ? "text-[#16A34A]" : "text-[#DC2626]") : "";
   const content = (
-    <article className="flex h-full flex-col rounded-xl border border-[#E8EAED] bg-white p-6 transition-shadow hover:shadow-sm">
+    <article className="flex h-full flex-col border border-[#E8EAED] bg-white p-6 transition-shadow hover:shadow-sm">
       <div className="mb-3 flex items-start justify-between">
         <span className="text-xs font-medium text-[#6B7280]">{periodLabel}</span>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status === "soon" ? "bg-[#F3F4F6] text-[#6B7280]" : "bg-[#ECFDF5] text-[#16A34A]"}`}>
+        <span className={`px-2 py-0.5 text-xs font-medium ${status === "soon" ? "bg-[#F3F4F6] text-[#6B7280]" : "bg-[#ECFDF5] text-[#16A34A]"}`}>
           {status === "soon" ? "Coming soon" : "Live"}
         </span>
       </div>

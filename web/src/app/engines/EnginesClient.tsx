@@ -1,83 +1,241 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { API_URL, type EnginePrediction, type EngineUnit, type ModelInfo } from "@/lib/api";
+import { CycleScrubber, EngineCharts } from "@/components/engines/EngineCharts";
+import { EngineSchematic, SensorBars } from "@/components/engines/EngineSchematic";
+import { EngineUnitCard } from "@/components/engines/EngineUnitCard";
+import { RulGauge } from "@/components/engines/RulGauge";
+import {
+  API_URL,
+  type EnginePrediction,
+  type EngineTelemetry,
+  type EngineUnit,
+  type ModelInfo,
+  type RulTimelinePoint,
+} from "@/lib/api";
+import { easeInOutCubic } from "@/lib/map-projection";
 
-export default function EnginesClient({ modelInfo, initialUnits }: { modelInfo: ModelInfo | null; initialUnits: EngineUnit[] }) {
-  const defaultUnit = initialUnits.find((u) => u.current_cycle >= 80 && u.current_cycle <= 150)?.unit_nr ?? initialUnits[0]?.unit_nr ?? 1;
+function useAnimatedNumber(target: number, duration = 600): number {
+  const [value, setValue] = useState(target);
+  const currentRef = useRef(target);
+  const rafRef = useRef(0);
+
+  useEffect(() => {
+    const from = currentRef.current;
+    const start = performance.now();
+    cancelAnimationFrame(rafRef.current);
+
+    function tick(now: number) {
+      const t = easeInOutCubic(Math.min(1, (now - start) / duration));
+      const next = from + (target - from) * t;
+      currentRef.current = next;
+      setValue(next);
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration]);
+
+  return value;
+}
+
+export default function EnginesClient({
+  modelInfo,
+  initialUnits,
+}: {
+  modelInfo: ModelInfo | null;
+  initialUnits: EngineUnit[];
+}) {
+  const defaultUnit =
+    initialUnits.find((u) => u.current_cycle >= 80 && u.current_cycle <= 150)?.unit_nr ??
+    initialUnits[0]?.unit_nr ??
+    1;
+
   const [selectedUnit, setSelectedUnit] = useState(defaultUnit);
-  const [atCycle, setAtCycle] = useState<number | "">("");
+  const [scrubCycle, setScrubCycle] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<EnginePrediction | null>(null);
-  const selected = initialUnits.find((u) => u.unit_nr === selectedUnit);
+  const [prediction, setPrediction] = useState<EnginePrediction | null>(null);
+  const [predictions, setPredictions] = useState<Record<number, EnginePrediction>>({});
+  const [telemetry, setTelemetry] = useState<EngineTelemetry | null>(null);
+  const [rulTimeline, setRulTimeline] = useState<RulTimelinePoint[]>([]);
+  const [filter, setFilter] = useState<"all" | "critical" | "healthy">("all");
+
+  const unit = initialUnits.find((u) => u.unit_nr === selectedUnit);
+  const effectiveCycle = scrubCycle ?? unit?.current_cycle ?? 30;
+  const animatedCycle = Math.round(useAnimatedNumber(effectiveCycle, 500));
   const metrics = modelInfo?.metrics ?? {};
 
-  useEffect(() => { if (selectedUnit) void runPrediction(selectedUnit); }, [selectedUnit]);
+  const loadEngineData = useCallback(
+    async (unitNr: number, atCycle?: number) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const cycleParam = atCycle ?? null;
+        const [predRes, telemRes, timelineRes] = await Promise.all([
+          fetch(`${API_URL}/predict/engine`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ unit_nr: unitNr, at_cycle: cycleParam }),
+          }),
+          fetch(
+            `${API_URL}/engines/units/${unitNr}/telemetry${cycleParam ? `?at_cycle=${cycleParam}` : ""}`,
+          ),
+          fetch(`${API_URL}/engines/units/${unitNr}/rul-timeline`),
+        ]);
 
-  async function runPrediction(unitNr: number, cycle?: number) {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${API_URL}/predict/engine`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unit_nr: unitNr, at_cycle: cycle ?? null }) });
-      if (!res.ok) throw new Error(await res.text());
-      setResult(await res.json());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Prediction failed");
-    } finally {
-      setLoading(false);
+        if (!predRes.ok) throw new Error(await predRes.text());
+        const pred: EnginePrediction = await predRes.json();
+        setPrediction(pred);
+        setPredictions((prev) => ({ ...prev, [unitNr]: pred }));
+
+        if (telemRes.ok) setTelemetry(await telemRes.json());
+        if (timelineRes.ok) setRulTimeline(await timelineRes.json());
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load engine data");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (selectedUnit) {
+      setScrubCycle(null);
+      void loadEngineData(selectedUnit);
     }
-  }
+  }, [selectedUnit, loadEngineData]);
 
-  const maxSensor = result ? Math.max(...Object.values(result.sensor_readings)) : 1;
+  useEffect(() => {
+    if (selectedUnit && scrubCycle !== null) {
+      const timer = setTimeout(() => loadEngineData(selectedUnit, scrubCycle), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [scrubCycle, selectedUnit, loadEngineData]);
+
+  const filteredUnits = initialUnits.filter((u) => {
+    const pred = predictions[u.unit_nr];
+    if (filter === "all") return true;
+    if (filter === "critical") return pred?.status === "critical" || pred?.status === "warning";
+    return pred?.status === "healthy";
+  });
+
+  const criticalCount = Object.values(predictions).filter(
+    (p) => p.status === "critical" || p.status === "warning",
+  ).length;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <PageHeader title="Jet Engine Predictive Maintenance" subtitle="Remaining useful life from rolling C-MAPSS sensor windows" activeTab="detail" detailHref="/engines" />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-[#E8EAED] bg-white p-6">
-          <label className="block text-sm"><span className="text-[#6B7280]">Engine unit</span>
-            <select className="mt-1 w-full rounded-lg border border-[#E8EAED] px-3 py-2 text-sm" value={selectedUnit} onChange={(e) => setSelectedUnit(Number(e.target.value))}>
-              {initialUnits.map((u) => <option key={u.unit_nr} value={u.unit_nr}>Engine #{u.unit_nr} — {u.current_cycle}/{u.max_cycle} cycles</option>)}
-            </select></label>
-          <label className="mt-4 block text-sm"><span className="text-[#6B7280]">Replay at cycle (optional)</span>
-            <input type="number" min={30} max={selected?.max_cycle} placeholder={`Latest: ${selected?.current_cycle ?? "—"}`} className="mt-1 w-full rounded-lg border border-[#E8EAED] px-3 py-2 text-sm" value={atCycle} onChange={(e) => setAtCycle(e.target.value === "" ? "" : Number(e.target.value))} /></label>
-          <button type="button" disabled={loading} onClick={() => runPrediction(selectedUnit, atCycle === "" ? undefined : atCycle)} className="mt-6 w-full rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60">{loading ? "Scoring…" : "Refresh RUL"}</button>
-          {error && <p className="mt-3 text-sm text-[#DC2626]">{error}</p>}
-        </div>
-        <div className="space-y-6">
-          <div className="rounded-xl border border-[#E8EAED] bg-white p-6">
-            <h2 className="text-base font-semibold">RUL forecast</h2>
-            {result ? (
-              <div className="mt-4">
-                <span className={`rounded-full px-3 py-1 text-sm font-medium ${result.status === "critical" ? "bg-[#FEE2E2] text-[#DC2626]" : result.status === "warning" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#ECFDF5] text-[#16A34A]"}`}>
-                  {result.status === "critical" ? "Critical" : result.status === "warning" ? "Monitor" : "Healthy"}
+    <div className="flex h-[calc(100vh-8.5rem)] flex-col">
+      <div className="shrink-0 px-6 pt-8">
+        <PageHeader
+          title="Jet Engine Predictive Maintenance"
+          subtitle="C-MAPSS sensor replay · RUL forecasting · fleet health monitoring"
+          activeTab="detail"
+          detailHref="/engines"
+        />
+      </div>
+
+      <div className="flex min-h-0 flex-1 border-t border-[#E8EAED]">
+        {/* Left — fleet list */}
+        <aside className="flex w-full max-w-[380px] shrink-0 flex-col border-r border-[#E8EAED] bg-white">
+          <div className="border-b border-[#E8EAED] px-4 py-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-[#111827]">
+                Fleet
+                <span className="ml-1.5 bg-[#F3F4F6] px-2 py-0.5 text-xs font-medium text-[#6B7280]">
+                  {initialUnits.length}
                 </span>
-                <p className="mt-4 text-4xl font-semibold">{result.predicted_rul_cycles.toFixed(0)} cycles</p>
-                <p className="text-sm text-[#6B7280]">Current cycle: {result.current_cycle}</p>
-              </div>
-            ) : <p className="mt-4 text-sm text-[#6B7280]">Select an engine.</p>}
-          </div>
-          {result && (
-            <div className="rounded-xl border border-[#E8EAED] bg-white p-6">
-              <h2 className="text-base font-semibold">Sensor health</h2>
-              <div className="mt-4 space-y-3">
-                {Object.entries(result.sensor_readings).map(([key, value]) => (
-                  <div key={key}>
-                    <div className="flex justify-between text-xs text-[#6B7280]"><span>{key}</span><span>{value.toFixed(3)}</span></div>
-                    <div className="mt-1 h-1.5 rounded-full bg-[#F3F4F6]"><div className="h-full rounded-full bg-[#2563EB]" style={{ width: `${(value / maxSensor) * 100}%` }} /></div>
-                  </div>
-                ))}
-              </div>
+              </h2>
+              {criticalCount > 0 && (
+                <span className="bg-[#FEE2E2] px-2 py-0.5 text-xs font-medium text-[#DC2626]">
+                  {criticalCount} alert{criticalCount === 1 ? "" : "s"}
+                </span>
+              )}
             </div>
-          )}
-          <div className="rounded-xl border border-[#E8EAED] bg-white p-6">
-            <h2 className="text-base font-semibold">Model metrics</h2>
-            <dl className="mt-4 space-y-3">
-              {metrics.rmse_cycles != null && <div className="flex justify-between text-sm"><dt className="text-[#6B7280]">RMSE</dt><dd>{Number(metrics.rmse_cycles).toFixed(2)} cycles</dd></div>}
-              {metrics.mae_cycles != null && <div className="flex justify-between text-sm"><dt className="text-[#6B7280]">MAE</dt><dd>{Number(metrics.mae_cycles).toFixed(2)} cycles</dd></div>}
+
+            <div className="mt-3 flex gap-1">
+              {(["all", "critical", "healthy"] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFilter(f)}
+                  className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                    filter === f
+                      ? "bg-[#111827] text-white"
+                      : "bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E8EAED]"
+                  }`}
+                >
+                  {f === "all" ? "All" : f === "critical" ? "Alerts" : "Healthy"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 space-y-3 overflow-y-auto p-4">
+            {filteredUnits.map((u) => (
+              <EngineUnitCard
+                key={u.unit_nr}
+                unit={u}
+                selected={u.unit_nr === selectedUnit}
+                prediction={predictions[u.unit_nr] ?? (u.unit_nr === selectedUnit ? prediction : null)}
+                loading={loading && u.unit_nr === selectedUnit}
+                onSelect={() => setSelectedUnit(u.unit_nr)}
+              />
+            ))}
+          </div>
+
+          <div className="border-t border-[#E8EAED] p-4">
+            <p className="text-xs font-medium text-[#6B7280]">Model holdout</p>
+            <dl className="mt-2 space-y-1.5">
+              {metrics.rmse_cycles != null && (
+                <div className="flex justify-between text-xs">
+                  <dt className="text-[#6B7280]">RMSE</dt>
+                  <dd className="font-medium">{Number(metrics.rmse_cycles).toFixed(2)} cycles</dd>
+                </div>
+              )}
+              {metrics.mae_cycles != null && (
+                <div className="flex justify-between text-xs">
+                  <dt className="text-[#6B7280]">MAE</dt>
+                  <dd className="font-medium">{Number(metrics.mae_cycles).toFixed(2)} cycles</dd>
+                </div>
+              )}
             </dl>
+          </div>
+        </aside>
+
+        {/* Right — health dashboard */}
+        <div className="min-w-0 flex-1 overflow-y-auto bg-[#F7F8FA] p-4">
+          <div className="space-y-4">
+            {unit && (
+              <CycleScrubber
+                min={30}
+                max={unit.current_cycle}
+                value={animatedCycle}
+                onChange={setScrubCycle}
+                disabled={loading}
+              />
+            )}
+
+            <RulGauge
+              prediction={prediction}
+              maxCycle={unit?.max_cycle ?? 0}
+              loading={loading}
+            />
+
+            <EngineSchematic prediction={prediction} loading={loading} />
+
+            <EngineCharts telemetry={telemetry} rulTimeline={rulTimeline} loading={loading} />
+
+            <SensorBars prediction={prediction} />
+
+            {error && (
+              <p className="border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm text-[#DC2626]">
+                {error}
+              </p>
+            )}
           </div>
         </div>
       </div>
