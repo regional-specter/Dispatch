@@ -32,8 +32,9 @@ export default async function DashboardPage() {
           sparkline={summary?.engine?.sparkline} sparklineFormat="cycles"
           insight={engineRmse ? `RMSE <strong>${engineRmse.toFixed(1)}</strong> cycles on C-MAPSS demo · Alerts when RUL &lt; 15` : "RUL countdown with critical alerts below 15 cycles"}
           href="/engines" status="live" />
-        <MetricCard periodLabel="Phase 2" title="Cargo Weight & Balance Optimization" heroValue="—"
-          insight="3D ULD placement within certified CG limits · <strong>PPO/heuristic</strong> bin-packing" status="soon" />
+        <MetricCard periodLabel="Interactive" title="Cargo Weight & Balance Optimization" heroValue="Live"
+          insight="3D ULD placement within certified CG limits · <strong>heuristic</strong> bin-packing with live CG telemetry"
+          href="/cargo" status="live" />
         <MetricCard periodLabel="Phase 3" title="Dynamic Freight Spot-Pricing" heroValue="—"
           insight="Per-kg spot rate forecasting · <strong>Prophet/CatBoost</strong> time-series pipeline" status="soon" />
       </div>
